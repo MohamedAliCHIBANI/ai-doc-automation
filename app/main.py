@@ -1,11 +1,20 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from app.services.file_loader import load_file
 from app.services.ai_summarizer import summarize
 
 app = FastAPI(
     title="AI Document Automation API",
-    description="Upload PDF, CSV, or TXT and get AI-powered summaries",
+    description="Upload PDF, CSV, and TXT and get AI-powered summaries",
     version="1.0.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -20,7 +29,6 @@ async def upload_file(file: UploadFile = File(...)):
         content = await file.read()
         text = load_file(filename=file.filename, content=content)
         result = summarize(text=text, doc_type=file.filename.rsplit(".", 1)[-1].upper())
-
         return {"filename": file.filename, "analysis": result}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

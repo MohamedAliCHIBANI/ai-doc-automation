@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DocMind — AI Document Analysis</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap"
+    rel="stylesheet" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c27;
+      --border: rgba(255, 255, 255, 0.07);
+      --border-hover: rgba(255, 255, 255, 0.15);
+      --accent: #7c6ef7;
+      --accent2: #5eead4;
+      --text: #f0f0f5;
+      --muted: #6b6b80;
+      --muted2: #9999aa;
+      --success: #5eead4;
+      --danger: #f87171;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(124, 110, 247, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(124, 110, 247, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Glow orbs */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .orb-1 {
+      width: 600px;
+      height: 600px;
+      background: rgba(124, 110, 247, 0.08);
+      top: -200px;
+      left: -200px;
+    }
+
+    .orb-2 {
+      width: 500px;
+      height: 500px;
+      background: rgba(94, 234, 212, 0.05);
+      bottom: -150px;
+      right: -150px;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 60px 24px 100px;
+    }
+
+    /* Header */
+    header {
+      margin-bottom: 64px;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--accent);
+      background: rgba(124, 110, 247, 0.1);
+      border: 1px solid rgba(124, 110, 247, 0.2);
+      padding: 4px 12px;
+      border-radius: 100px;
+      margin-bottom: 20px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s infinite;
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(36px, 6vw, 58px);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+    }
+
+    h1 span {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: var(--muted2);
+      font-weight: 300;
+      line-height: 1.6;
+      max-width: 480px;
+    }
+
+    /* Upload zone */
+    .upload-zone {
+      border: 1.5px dashed var(--border-hover);
+      border-radius: 20px;
+      padding: 52px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      background: var(--surface);
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp 0.6s 0.1s ease both;
+      margin-bottom: 16px;
+    }
+
+    .upload-zone::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, rgba(124, 110, 247, 0.04) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(124, 110, 247, 0.04);
+    }
+
+    .upload-zone:hover::before,
+    .upload-zone.drag-over::before {
+      opacity: 1;
+    }
+
+    .upload-icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 20px;
+      background: rgba(124, 110, 247, 0.1);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      transition: transform 0.2s;
+    }
+
+    .upload-zone:hover .upload-icon {
+      transform: translateY(-3px);
+    }
+
+    .upload-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .upload-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+
+    .file-types {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .file-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      color: var(--muted2);
+      background: var(--surface2);
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    /* Selected file */
+    .file-selected {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      animation: fadeUp 0.3s ease both;
+    }
+
+    .file-selected.show {
+      display: flex;
+    }
+
+    .file-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: rgba(124, 110, 247, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .file-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .file-name {
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-size {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .remove-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 4px;
+      border-radius: 6px;
+      transition: color 0.2s;
+      line-height: 1;
+    }
+
+    .remove-btn:hover {
+      color: var(--danger);
+    }
+
+    /* Analyze button */
+    .btn-analyze {
+      width: 100%;
+      padding: 16px;
+      border-radius: 14px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent) 0%, #5b4fe0 100%);
+      color: white;
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp 0.6s 0.2s ease both;
+      letter-spacing: 0.01em;
+    }
+
+    .btn-analyze:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .btn-analyze:not(:disabled):hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(124, 110, 247, 0.35);
+    }
+
+    .btn-analyze:not(:disabled):active {
+      transform: translateY(0);
+    }
+
+    /* Loading */
+    .loading {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 32px;
+      color: var(--muted2);
+      font-size: 14px;
+      animation: fadeUp 0.3s ease both;
+    }
+
+    .loading.show {
+      display: flex;
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    /* Error */
+    .error-box {
+      display: none;
+      background: rgba(248, 113, 113, 0.08);
+      border: 1px solid rgba(248, 113, 113, 0.2);
+      border-radius: 12px;
+      padding: 16px 18px;
+      color: #f87171;
+      font-size: 14px;
+      gap: 10px;
+      align-items: flex-start;
+      animation: fadeUp 0.3s ease both;
+    }
+
+    .error-box.show {
+      display: flex;
+    }
+
+    /* Results */
+    .results {
+      display: none;
+      margin-top: 32px;
+      animation: fadeUp 0.5s ease both;
+    }
+
+    .results.show {
+      display: block;
+    }
+
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .results-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .results-file {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      background: var(--surface2);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      transition: border-color 0.2s;
+    }
+
+    .card:hover {
+      border-color: var(--border-hover);
+    }
+
+    .card-label {
+      font-size: 11px;
+      font-family: 'DM Mono', monospace;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+
+    .card-value {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    .sentiment-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .sentiment-positive {
+      background: rgba(94, 234, 212, 0.1);
+      color: #5eead4;
+    }
+
+    .sentiment-neutral {
+      background: rgba(124, 110, 247, 0.1);
+      color: #a78bfa;
+    }
+
+    .sentiment-negative {
+      background: rgba(248, 113, 113, 0.1);
+      color: #f87171;
+    }
+
+    .word-count {
+      font-family: 'Syne', sans-serif;
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .word-count-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .card-full {
+      grid-column: 1 / -1;
+    }
+
+    .summary-text {
+      font-size: 15px;
+      line-height: 1.75;
+      color: var(--muted2);
+      font-weight: 300;
+    }
+
+    .keypoints-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .keypoints-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--muted2);
+    }
+
+    .keypoints-list li::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent2);
+      flex-shrink: 0;
+      margin-top: 7px;
+    }
+
+    /* Reset button */
+    .btn-reset {
+      margin-top: 24px;
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted2);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-reset:hover {
+      border-color: var(--border-hover);
+      color: var(--text);
+      background: var(--surface);
+    }
+
+    /* Footer */
+    footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 0 24px 40px;
+      font-size: 12px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* Animations */
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.4;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .cards-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .card-full {
+        grid-column: 1 / -1;
+      }
+
+      h1 {
+        font-size: 36px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <div class="container">
+    <header>
+      <div class="badge">AI-Powered</div>
+      <h1>Analyze any<br /><span>document instantly</span></h1>
+      <p class="subtitle">Upload a PDF, CSV, or TXT file and get a structured AI analysis in seconds — summary, key
+        points, sentiment, and more.</p>
+    </header>
+
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="fileInput" accept=".pdf,.csv,.txt" />
+      <div class="upload-icon">📄</div>
+      <p class="upload-title">Drop your file here</p>
+      <p class="upload-sub">or click to browse from your computer</p>
+      <div class="file-types">
+        <span class="file-tag">.PDF</span>
+        <span class="file-tag">.CSV</span>
+        <span class="file-tag">.TXT</span>
+      </div>
+    </div>
+
+    <div class="file-selected" id="fileSelected">
+      <div class="file-icon" id="fileIconEl">📄</div>
+      <div class="file-info">
+        <div class="file-name" id="fileName">—</div>
+        <div class="file-size" id="fileSize">—</div>
+      </div>
+      <button class="remove-btn" id="removeBtn" title="Remove file">✕</button>
+    </div>
+
+    <div class="error-box" id="errorBox">
+      <span>⚠</span>
+      <span id="errorMsg">Something went wrong.</span>
+    </div>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <span>Analyzing your document…</span>
+    </div>
+
+    <button class="btn-analyze" id="analyzeBtn" disabled>
+      Analyze Document
+    </button>
+
+    <div class="results" id="results">
+      <div class="results-header">
+        <span class="results-title">Analysis Results</span>
+        <span class="results-file" id="resultsFileName">—</span>
+      </div>
+
+      <div class="cards-grid">
+        <div class="card card-full">
+          <div class="card-label">Summary</div>
+          <div class="card-value summary-text" id="resSummary">—</div>
+        </div>
+
+        <div class="card" style="grid-column: span 1;">
+          <div class="card-label">Document Type</div>
+          <div class="card-value" id="resType">—</div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">Sentiment</div>
+          <div class="card-value" id="resSentiment">—</div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">Word Count</div>
+          <div class="word-count" id="resWordCount">—</div>
+          <div class="word-count-sub">words</div>
+        </div>
+
+        <div class="card card-full">
+          <div class="card-label">Key Points</div>
+          <ul class="keypoints-list" id="resKeyPoints"></ul>
+        </div>
+      </div>
+
+      <button class="btn-reset" id="resetBtn">↩ Analyze another document</button>
+    </div>
+  </div>
+
+  <footer>
+    Built by <a href="#">Mohamed Ali</a> &nbsp;·&nbsp; AI Document Automation API &nbsp;·&nbsp; Powered by OpenAI
+  </footer>
+
+  <script>
+    const API_URL = 'http://3.131.142.10:8000';
+
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileSelected = document.getElementById('fileSelected');
+    const fileIconEl = document.getElementById('fileIconEl');
+    const fileNameEl = document.getElementById('fileName');
+    const fileSizeEl = document.getElementById('fileSize');
+    const removeBtn = document.getElementById('removeBtn');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const loading = document.getElementById('loading');
+    const errorBox = document.getElementById('errorBox');
+    const errorMsg = document.getElementById('errorMsg');
+    const results = document.getElementById('results');
+
+    let selectedFile = null;
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function getFileIcon(name) {
+      const ext = name.split('.').pop().toLowerCase();
+      if (ext === 'pdf') return '📕';
+      if (ext === 'csv') return '📊';
+      return '📄';
+    }
+
+    function setFile(file) {
+      selectedFile = file;
+      fileNameEl.textContent = file.name;
+      fileSizeEl.textContent = formatSize(file.size);
+      fileIconEl.textContent = getFileIcon(file.name);
+      fileSelected.classList.add('show');
+      analyzeBtn.disabled = false;
+      hideError();
+      results.classList.remove('show');
+    }
+
+    function clearFile() {
+      selectedFile = null;
+      fileInput.value = '';
+      fileSelected.classList.remove('show');
+      analyzeBtn.disabled = true;
+      hideError();
+      results.classList.remove('show');
+    }
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorBox.classList.add('show');
+    }
+
+    function hideError() {
+      errorBox.classList.remove('show');
+    }
+
+    function getSentimentHTML(sentiment) {
+      const s = sentiment.toLowerCase();
+      if (s === 'positive') return `<span class="sentiment-badge sentiment-positive">● Positive</span>`;
+      if (s === 'negative') return `<span class="sentiment-badge sentiment-negative">● Negative</span>`;
+      return `<span class="sentiment-badge sentiment-neutral">● Neutral</span>`;
+    }
+
+    uploadZone.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files[0]) setFile(e.target.files[0]);
+    });
+
+    uploadZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadZone.classList.add('drag-over');
+    });
+
+    uploadZone.addEventListener('dragleave', () => {
+      uploadZone.classList.remove('drag-over');
+    });
+
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) setFile(file);
+    });
+
+    removeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      clearFile();
+    });
+
+    analyzeBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+
+      hideError();
+      results.classList.remove('show');
+      loading.classList.add('show');
+      analyzeBtn.disabled = true;
+      analyzeBtn.textContent = 'Analyzing…';
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      try {
+        const response = await fetch(`${API_URL}/upload`, {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || 'Analysis failed');
+        }
+
+        const a = data.analysis;
+
+        document.getElementById('resultsFileName').textContent = data.filename;
+        document.getElementById('resSummary').textContent = a.Summary || '—';
+        document.getElementById('resType').textContent = a['Document Type'] || '—';
+        document.getElementById('resSentiment').innerHTML = getSentimentHTML(a.Sentiment || 'neutral');
+        document.getElementById('resWordCount').textContent = a['Word Count'] || '—';
+
+        const keyPointsList = document.getElementById('resKeyPoints');
+        keyPointsList.innerHTML = '';
+        (a['Key Points'] || []).forEach(point => {
+          const li = document.createElement('li');
+          li.textContent = point;
+          keyPointsList.appendChild(li);
+        });
+
+        results.classList.add('show');
+
+      } catch (err) {
+        showError(err.message || 'Could not connect to the API. Make sure the server is running.');
+      } finally {
+        loading.classList.remove('show');
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = 'Analyze Document';
+      }
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      clearFile();
+      results.classList.remove('show');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  </script>
+</body>
+
+</html>
