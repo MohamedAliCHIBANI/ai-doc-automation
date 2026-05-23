@@ -10,7 +10,7 @@ ENV/
 
 # Environment files
 .env
-.env.*
+
 
 # Packaging
 build/
