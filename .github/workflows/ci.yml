@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run tests
+        env:
+          OPENAI_API_KEY: sk-test
+          SUPABASE_URL: https://test.supabase.co
+          SUPABASE_JWT_SECRET: test-jwt-secret-needs-at-least-32chars
+          SUPABASE_SERVICE_ROLE_KEY: test-role-key
+        run: pytest tests/ -v --tb=short --cov=app --cov-report=term-missing
