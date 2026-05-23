@@ -1,4 +1,5 @@
 import os
+import httpx
 from fastapi import FastAPI, UploadFile, File, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from jose import jwt, JWTError
@@ -30,20 +31,65 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")
+_JWT_SECRET   = os.getenv("SUPABASE_JWT_SECRET", "")
+_SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+_jwks_cache: dict | None = None
+
+
+def _get_jwks() -> dict:
+    """Fetch and cache Supabase public JWKS (used for ECC tokens)."""
+    global _jwks_cache
+    if _jwks_cache is None:
+        url = f"{_SUPABASE_URL}/auth/v1/.well-known/jwks.json"
+        resp = httpx.get(url, timeout=10)
+        resp.raise_for_status()
+        _jwks_cache = resp.json()
+    return _jwks_cache
 
 
 def _get_user_id(authorization: str | None) -> str | None:
     if not authorization or not authorization.startswith("Bearer "):
         return None
+
+    token = authorization[7:]
+
     try:
-        payload = jwt.decode(
-            authorization[7:],
-            _JWT_SECRET,
-            algorithms=["HS256"],
-            options={"verify_aud": False},
-        )
+        header = jwt.get_unverified_header(token)
+        alg = header.get("alg", "HS256")
+        kid = header.get("kid")
+
+        if alg == "HS256":
+            # Legacy shared-secret key
+            payload = jwt.decode(
+                token,
+                _JWT_SECRET,
+                algorithms=["HS256"],
+                options={"verify_aud": False},
+            )
+        else:
+            # ECC / RSA key — verify via JWKS
+            keys = _get_jwks().get("keys", [])
+            candidates = [k for k in keys if k.get("kid") == kid] or keys
+
+            payload = None
+            last_err: Exception = JWTError("No matching key found")
+            for key_data in candidates:
+                try:
+                    payload = jwt.decode(
+                        token,
+                        key_data,
+                        algorithms=[alg],
+                        options={"verify_aud": False},
+                    )
+                    break
+                except JWTError as exc:
+                    last_err = exc
+
+            if payload is None:
+                raise last_err
+
         return payload.get("sub")
+
     except JWTError:
         raise HTTPException(status_code=401, detail="invalid_token")
 
