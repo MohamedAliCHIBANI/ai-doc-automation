@@ -6,3 +6,5 @@ pandas
 openai
 python-dotenv
 dotenv
+supabase
+python-jose[cryptography]

@@ -8,6 +8,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap"
     rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     *,
     *::before,
@@ -40,7 +41,6 @@
       overflow-x: hidden;
     }
 
-    /* Grid background */
     body::before {
       content: '';
       position: fixed;
@@ -53,7 +53,6 @@
       z-index: 0;
     }
 
-    /* Glow orbs */
     .orb {
       position: fixed;
       border-radius: 50%;
@@ -83,10 +82,84 @@
       z-index: 1;
       max-width: 780px;
       margin: 0 auto;
-      padding: 60px 24px 100px;
+      padding: 40px 24px 100px;
     }
 
-    /* Header */
+    /* ── Auth bar ── */
+    .auth-bar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-bottom: 32px;
+      min-height: 36px;
+      animation: fadeUp 0.5s ease both;
+    }
+
+    .usage-info {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      margin-right: auto;
+    }
+
+    .usage-info.at-limit {
+      color: var(--danger);
+    }
+
+    .btn-topbar {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--border-hover);
+      padding: 7px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-topbar:hover {
+      background: var(--surface2);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .user-pill {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 6px 14px 6px 12px;
+      border-radius: 100px;
+    }
+
+    .user-pill-email {
+      font-size: 12px;
+      color: var(--muted2);
+      font-family: 'DM Mono', monospace;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .btn-signout {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 12px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      padding: 0;
+      transition: color 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-signout:hover { color: var(--danger); }
+
+    /* ── Header ── */
     header {
       margin-bottom: 64px;
       animation: fadeUp 0.6s ease both;
@@ -142,7 +215,7 @@
       max-width: 480px;
     }
 
-    /* Upload zone */
+    /* ── Upload zone ── */
     .upload-zone {
       border: 1.5px dashed var(--border-hover);
       border-radius: 20px;
@@ -173,9 +246,7 @@
     }
 
     .upload-zone:hover::before,
-    .upload-zone.drag-over::before {
-      opacity: 1;
-    }
+    .upload-zone.drag-over::before { opacity: 1; }
 
     .upload-icon {
       width: 56px;
@@ -190,9 +261,7 @@
       transition: transform 0.2s;
     }
 
-    .upload-zone:hover .upload-icon {
-      transform: translateY(-3px);
-    }
+    .upload-zone:hover .upload-icon { transform: translateY(-3px); }
 
     .upload-title {
       font-family: 'Syne', sans-serif;
@@ -223,11 +292,9 @@
       background: var(--surface2);
     }
 
-    input[type="file"] {
-      display: none;
-    }
+    input[type="file"] { display: none; }
 
-    /* Selected file */
+    /* ── File selected ── */
     .file-selected {
       display: none;
       align-items: center;
@@ -240,9 +307,7 @@
       animation: fadeUp 0.3s ease both;
     }
 
-    .file-selected.show {
-      display: flex;
-    }
+    .file-selected.show { display: flex; }
 
     .file-icon {
       width: 36px;
@@ -256,10 +321,7 @@
       flex-shrink: 0;
     }
 
-    .file-info {
-      flex: 1;
-      min-width: 0;
-    }
+    .file-info { flex: 1; min-width: 0; }
 
     .file-name {
       font-size: 14px;
@@ -287,11 +349,9 @@
       line-height: 1;
     }
 
-    .remove-btn:hover {
-      color: var(--danger);
-    }
+    .remove-btn:hover { color: var(--danger); }
 
-    /* Analyze button */
+    /* ── Analyze button ── */
     .btn-analyze {
       width: 100%;
       padding: 16px;
@@ -321,11 +381,9 @@
       box-shadow: 0 8px 32px rgba(124, 110, 247, 0.35);
     }
 
-    .btn-analyze:not(:disabled):active {
-      transform: translateY(0);
-    }
+    .btn-analyze:not(:disabled):active { transform: translateY(0); }
 
-    /* Loading */
+    /* ── Loading ── */
     .loading {
       display: none;
       align-items: center;
@@ -337,9 +395,7 @@
       animation: fadeUp 0.3s ease both;
     }
 
-    .loading.show {
-      display: flex;
-    }
+    .loading.show { display: flex; }
 
     .spinner {
       width: 20px;
@@ -350,7 +406,7 @@
       animation: spin 0.7s linear infinite;
     }
 
-    /* Error */
+    /* ── Error ── */
     .error-box {
       display: none;
       background: rgba(248, 113, 113, 0.08);
@@ -364,20 +420,16 @@
       animation: fadeUp 0.3s ease both;
     }
 
-    .error-box.show {
-      display: flex;
-    }
+    .error-box.show { display: flex; }
 
-    /* Results */
+    /* ── Results ── */
     .results {
       display: none;
       margin-top: 32px;
       animation: fadeUp 0.5s ease both;
     }
 
-    .results.show {
-      display: block;
-    }
+    .results.show { display: block; }
 
     .results-header {
       display: flex;
@@ -420,9 +472,7 @@
       transition: border-color 0.2s;
     }
 
-    .card:hover {
-      border-color: var(--border-hover);
-    }
+    .card:hover { border-color: var(--border-hover); }
 
     .card-label {
       font-size: 11px;
@@ -450,20 +500,9 @@
       font-weight: 500;
     }
 
-    .sentiment-positive {
-      background: rgba(94, 234, 212, 0.1);
-      color: #5eead4;
-    }
-
-    .sentiment-neutral {
-      background: rgba(124, 110, 247, 0.1);
-      color: #a78bfa;
-    }
-
-    .sentiment-negative {
-      background: rgba(248, 113, 113, 0.1);
-      color: #f87171;
-    }
+    .sentiment-positive { background: rgba(94, 234, 212, 0.1); color: #5eead4; }
+    .sentiment-neutral  { background: rgba(124, 110, 247, 0.1); color: #a78bfa; }
+    .sentiment-negative { background: rgba(248, 113, 113, 0.1); color: #f87171; }
 
     .word-count {
       font-family: 'Syne', sans-serif;
@@ -472,15 +511,8 @@
       color: var(--accent);
     }
 
-    .word-count-sub {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 2px;
-    }
-
-    .card-full {
-      grid-column: 1 / -1;
-    }
+    .word-count-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .card-full { grid-column: 1 / -1; }
 
     .summary-text {
       font-size: 15px;
@@ -515,7 +547,51 @@
       margin-top: 7px;
     }
 
-    /* Reset button */
+    /* ── Auth prompt (shown after free trial) ── */
+    .auth-prompt {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: rgba(124, 110, 247, 0.06);
+      border: 1px solid rgba(124, 110, 247, 0.25);
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-top: 16px;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    .auth-prompt-text strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+
+    .auth-prompt-text span {
+      font-size: 13px;
+      color: var(--muted2);
+    }
+
+    .btn-prompt-auth {
+      flex-shrink: 0;
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 10px;
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-prompt-auth:hover { opacity: 0.85; transform: translateY(-1px); }
+
+    /* ── Reset button ── */
     .btn-reset {
       margin-top: 24px;
       width: 100%;
@@ -536,7 +612,220 @@
       background: var(--surface);
     }
 
-    /* Footer */
+    /* ── Modal ── */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .modal-backdrop.show { display: flex; }
+
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border-hover);
+      border-radius: 24px;
+      padding: 36px;
+      width: 100%;
+      max-width: 420px;
+      position: relative;
+      animation: fadeUp 0.3s ease both;
+    }
+
+    .modal-close-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 18px;
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, color 0.2s;
+      line-height: 1;
+    }
+
+    .modal-close-btn:hover { background: var(--surface2); color: var(--text); }
+
+    .modal-header { margin-bottom: 24px; }
+
+    .modal-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .modal-sub { font-size: 13px; color: var(--muted2); }
+
+    .modal-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 24px;
+    }
+
+    .modal-tab {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 8px;
+      background: none;
+      color: var(--muted2);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .modal-tab.active {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    }
+
+    .btn-google {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--border-hover);
+      border-radius: 12px;
+      background: var(--surface2);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 20px;
+    }
+
+    .btn-google:hover {
+      border-color: rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .modal-divider {
+      text-align: center;
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .modal-divider::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .modal-divider span {
+      position: relative;
+      background: var(--surface);
+      padding: 0 12px;
+      font-size: 12px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+    }
+
+    .form-field { margin-bottom: 14px; }
+
+    .form-field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted2);
+      margin-bottom: 6px;
+      font-family: 'DM Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .form-field input {
+      width: 100%;
+      padding: 11px 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-field input:focus { border-color: var(--accent); }
+    .form-field input::placeholder { color: var(--muted); }
+
+    .auth-message {
+      font-size: 13px;
+      margin-bottom: 14px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      display: none;
+      line-height: 1.5;
+    }
+
+    .auth-message.error {
+      display: block;
+      background: rgba(248, 113, 113, 0.08);
+      color: var(--danger);
+      border: 1px solid rgba(248, 113, 113, 0.2);
+    }
+
+    .auth-message.success {
+      display: block;
+      background: rgba(94, 234, 212, 0.08);
+      color: var(--success);
+      border: 1px solid rgba(94, 234, 212, 0.2);
+    }
+
+    .btn-auth-submit {
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent) 0%, #5b4fe0 100%);
+      color: white;
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-auth-submit:hover:not(:disabled) {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .btn-auth-submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ── Footer ── */
     footer {
       position: relative;
       z-index: 1;
@@ -547,54 +836,28 @@
       font-family: 'DM Mono', monospace;
     }
 
-    footer a {
-      color: var(--accent);
-      text-decoration: none;
-    }
+    footer a { color: var(--accent); text-decoration: none; }
 
-    /* Animations */
+    /* ── Animations ── */
     @keyframes fadeUp {
-      from {
-        opacity: 0;
-        transform: translateY(16px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     @keyframes pulse {
-
-      0%,
-      100% {
-        opacity: 1;
-      }
-
-      50% {
-        opacity: 0.4;
-      }
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
     }
 
     @media (max-width: 600px) {
-      .cards-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .card-full {
-        grid-column: 1 / -1;
-      }
-
-      h1 {
-        font-size: 36px;
-      }
+      .cards-grid { grid-template-columns: 1fr 1fr; }
+      .card-full  { grid-column: 1 / -1; }
+      h1          { font-size: 36px; }
+      .auth-prompt { flex-direction: column; text-align: center; }
+      .modal-box  { padding: 24px; }
+      .user-pill-email { max-width: 120px; }
     }
   </style>
 </head>
@@ -605,6 +868,17 @@
   <div class="orb orb-2"></div>
 
   <div class="container">
+
+    <!-- Auth bar -->
+    <div class="auth-bar">
+      <span class="usage-info" id="usageInfo"></span>
+      <button class="btn-topbar" id="signinBtn">Sign in</button>
+      <div class="user-pill" id="userPill">
+        <span class="user-pill-email" id="userEmailDisplay"></span>
+        <button class="btn-signout" id="signoutBtn">Sign out</button>
+      </div>
+    </div>
+
     <header>
       <div class="badge">AI-Powered</div>
       <h1>Analyze any<br /><span>document instantly</span></h1>
@@ -683,30 +957,251 @@
 
       <button class="btn-reset" id="resetBtn">↩ Analyze another document</button>
     </div>
+
+    <!-- Auth prompt after free trial -->
+    <div class="auth-prompt" id="authPrompt">
+      <div class="auth-prompt-text">
+        <strong>That was your free analysis.</strong>
+        <span>Create a free account to get 10 more.</span>
+      </div>
+      <button class="btn-prompt-auth" id="authPromptBtn">Create free account →</button>
+    </div>
+
   </div>
 
   <footer>
-    Built by <a href="#">Mohamed Ali</a> &nbsp;·&nbsp; AI Document Automation API &nbsp;·&nbsp; Powered by OpenAI
+    Built by <a href="#">Mohamed Ali</a> &nbsp;·&nbsp; DocMind &nbsp;·&nbsp; Powered by OpenAI
   </footer>
 
+  <!-- Auth modal -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal-box">
+      <button class="modal-close-btn" id="modalCloseBtn">✕</button>
+
+      <div class="modal-header">
+        <div class="modal-title">Welcome to DocMind</div>
+        <div class="modal-sub">Get 10 free analyses with your account</div>
+      </div>
+
+      <div class="modal-tabs">
+        <button class="modal-tab active" id="tabSignin">Sign in</button>
+        <button class="modal-tab" id="tabSignup">Create account</button>
+      </div>
+
+      <button class="btn-google" id="googleBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </button>
+
+      <div class="modal-divider"><span>or</span></div>
+
+      <div class="form-field">
+        <label>Email</label>
+        <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email" />
+      </div>
+      <div class="form-field">
+        <label>Password</label>
+        <input type="password" id="authPassword" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+
+      <div class="auth-message" id="authMessage"></div>
+
+      <button class="btn-auth-submit" id="authSubmitBtn">Sign in</button>
+    </div>
+  </div>
+
   <script>
-    const API_URL = 'https://ai-doc-automation.onrender.com';
+    // ── Config ──────────────────────────────────────────────────────────────
+    const API_URL        = 'https://ai-doc-automation.onrender.com';
+    const SUPABASE_URL   = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON  = 'YOUR_SUPABASE_ANON_KEY';
 
-    const uploadZone = document.getElementById('uploadZone');
-    const fileInput = document.getElementById('fileInput');
-    const fileSelected = document.getElementById('fileSelected');
-    const fileIconEl = document.getElementById('fileIconEl');
-    const fileNameEl = document.getElementById('fileName');
-    const fileSizeEl = document.getElementById('fileSize');
-    const removeBtn = document.getElementById('removeBtn');
-    const analyzeBtn = document.getElementById('analyzeBtn');
-    const loading = document.getElementById('loading');
-    const errorBox = document.getElementById('errorBox');
-    const errorMsg = document.getElementById('errorMsg');
-    const results = document.getElementById('results');
+    // ── Supabase init ────────────────────────────────────────────────────────
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+    // ── Anonymous session ID ─────────────────────────────────────────────────
+    let _sid = localStorage.getItem('dm_sid');
+    if (!_sid) {
+      _sid = crypto.randomUUID ? crypto.randomUUID()
+        : ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+      localStorage.setItem('dm_sid', _sid);
+    }
+
+    // ── State ────────────────────────────────────────────────────────────────
+    let _session  = null;
+    let _curTab   = 'signin';
     let selectedFile = null;
 
+    // ── DOM refs ─────────────────────────────────────────────────────────────
+    const uploadZone    = document.getElementById('uploadZone');
+    const fileInput     = document.getElementById('fileInput');
+    const fileSelected  = document.getElementById('fileSelected');
+    const fileIconEl    = document.getElementById('fileIconEl');
+    const fileNameEl    = document.getElementById('fileName');
+    const fileSizeEl    = document.getElementById('fileSize');
+    const removeBtn     = document.getElementById('removeBtn');
+    const analyzeBtn    = document.getElementById('analyzeBtn');
+    const loading       = document.getElementById('loading');
+    const errorBox      = document.getElementById('errorBox');
+    const errorMsg      = document.getElementById('errorMsg');
+    const results       = document.getElementById('results');
+    const authPrompt    = document.getElementById('authPrompt');
+    const usageInfo     = document.getElementById('usageInfo');
+    const signinBtn     = document.getElementById('signinBtn');
+    const userPill      = document.getElementById('userPill');
+    const userEmailDisp = document.getElementById('userEmailDisplay');
+    const signoutBtn    = document.getElementById('signoutBtn');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const modalCloseBtn = document.getElementById('modalCloseBtn');
+    const tabSignin     = document.getElementById('tabSignin');
+    const tabSignup     = document.getElementById('tabSignup');
+    const googleBtn     = document.getElementById('googleBtn');
+    const authEmail     = document.getElementById('authEmail');
+    const authPassword  = document.getElementById('authPassword');
+    const authMessage   = document.getElementById('authMessage');
+    const authSubmitBtn = document.getElementById('authSubmitBtn');
+    const authPromptBtn = document.getElementById('authPromptBtn');
+
+    // ── Auth state ───────────────────────────────────────────────────────────
+    sb.auth.onAuthStateChange((_event, session) => {
+      _session = session;
+      renderAuthBar();
+      if (session) {
+        closeModal();
+        loadUsage();
+      } else {
+        usageInfo.textContent = '';
+      }
+    });
+
+    (async () => {
+      const { data: { session } } = await sb.auth.getSession();
+      _session = session;
+      renderAuthBar();
+      if (session) loadUsage();
+    })();
+
+    function renderAuthBar() {
+      if (_session?.user) {
+        userEmailDisp.textContent = _session.user.email;
+        userPill.style.display = 'flex';
+        signinBtn.style.display = 'none';
+      } else {
+        userPill.style.display = 'none';
+        signinBtn.style.display = 'block';
+      }
+    }
+
+    async function loadUsage() {
+      if (!_session?.access_token) return;
+      try {
+        const res = await fetch(`${API_URL}/usage`, {
+          headers: { 'Authorization': `Bearer ${_session.access_token}` }
+        });
+        if (res.ok) {
+          const { used, limit } = await res.json();
+          usageInfo.textContent = `${used} / ${limit} analyses used`;
+          usageInfo.className = used >= limit ? 'usage-info at-limit' : 'usage-info';
+        }
+      } catch (_) {}
+    }
+
+    // ── Modal ────────────────────────────────────────────────────────────────
+    function openModal(tab = 'signin') {
+      switchTab(tab);
+      modalBackdrop.classList.add('show');
+      authEmail.focus();
+    }
+
+    function closeModal() {
+      modalBackdrop.classList.remove('show');
+      authMessage.className = 'auth-message';
+      authMessage.textContent = '';
+      authEmail.value = '';
+      authPassword.value = '';
+    }
+
+    function switchTab(tab) {
+      _curTab = tab;
+      tabSignin.classList.toggle('active', tab === 'signin');
+      tabSignup.classList.toggle('active', tab === 'signup');
+      authSubmitBtn.textContent = tab === 'signin' ? 'Sign in' : 'Create account';
+      authMessage.className = 'auth-message';
+      authMessage.textContent = '';
+    }
+
+    function showAuthMsg(text, type) {
+      authMessage.textContent = text;
+      authMessage.className = `auth-message ${type}`;
+    }
+
+    signinBtn.addEventListener('click', () => openModal('signin'));
+    authPromptBtn.addEventListener('click', () => openModal('signup'));
+    modalCloseBtn.addEventListener('click', closeModal);
+    modalBackdrop.addEventListener('click', e => { if (e.target === modalBackdrop) closeModal(); });
+    tabSignin.addEventListener('click', () => switchTab('signin'));
+    tabSignup.addEventListener('click', () => switchTab('signup'));
+
+    signoutBtn.addEventListener('click', async () => {
+      await sb.auth.signOut();
+      usageInfo.textContent = '';
+    });
+
+    googleBtn.addEventListener('click', async () => {
+      const { error } = await sb.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.href }
+      });
+      if (error) showAuthMsg(error.message, 'error');
+    });
+
+    authSubmitBtn.addEventListener('click', async () => {
+      const email    = authEmail.value.trim();
+      const password = authPassword.value;
+
+      if (!email || !password) {
+        showAuthMsg('Please fill in all fields.', 'error');
+        return;
+      }
+
+      authSubmitBtn.disabled = true;
+      authSubmitBtn.textContent = _curTab === 'signin' ? 'Signing in…' : 'Creating account…';
+      authMessage.className = 'auth-message';
+
+      try {
+        if (_curTab === 'signin') {
+          const { error } = await sb.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+        } else {
+          const { data, error } = await sb.auth.signUp({ email, password });
+          if (error) throw error;
+          if (data?.user?.identities?.length === 0) {
+            showAuthMsg('This email is already registered. Please sign in.', 'error');
+            return;
+          }
+          showAuthMsg('Check your email to confirm your account, then sign in.', 'success');
+          return;
+        }
+      } catch (err) {
+        showAuthMsg(err.message || 'Authentication failed.', 'error');
+      } finally {
+        authSubmitBtn.disabled = false;
+        authSubmitBtn.textContent = _curTab === 'signin' ? 'Sign in' : 'Create account';
+      }
+    });
+
+    // Allow Enter key to submit
+    [authEmail, authPassword].forEach(el =>
+      el.addEventListener('keydown', e => { if (e.key === 'Enter') authSubmitBtn.click(); })
+    );
+
+    // ── File handling ────────────────────────────────────────────────────────
     function formatSize(bytes) {
       if (bytes < 1024) return bytes + ' B';
       if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
@@ -729,6 +1224,7 @@
       analyzeBtn.disabled = false;
       hideError();
       results.classList.remove('show');
+      authPrompt.style.display = 'none';
     }
 
     function clearFile() {
@@ -738,6 +1234,7 @@
       analyzeBtn.disabled = true;
       hideError();
       results.classList.remove('show');
+      authPrompt.style.display = 'none';
     }
 
     function showError(msg) {
@@ -757,40 +1254,33 @@
     }
 
     uploadZone.addEventListener('click', () => fileInput.click());
-
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files[0]) setFile(e.target.files[0]);
-    });
-
-    uploadZone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      uploadZone.classList.add('drag-over');
-    });
-
-    uploadZone.addEventListener('dragleave', () => {
-      uploadZone.classList.remove('drag-over');
-    });
-
-    uploadZone.addEventListener('drop', (e) => {
+    fileInput.addEventListener('change', e => { if (e.target.files[0]) setFile(e.target.files[0]); });
+    uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+    uploadZone.addEventListener('drop', e => {
       e.preventDefault();
       uploadZone.classList.remove('drag-over');
-      const file = e.dataTransfer.files[0];
-      if (file) setFile(file);
+      if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
     });
+    removeBtn.addEventListener('click', e => { e.stopPropagation(); clearFile(); });
 
-    removeBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      clearFile();
-    });
-
+    // ── Upload ───────────────────────────────────────────────────────────────
     analyzeBtn.addEventListener('click', async () => {
       if (!selectedFile) return;
 
       hideError();
       results.classList.remove('show');
+      authPrompt.style.display = 'none';
       loading.classList.add('show');
       analyzeBtn.disabled = true;
       analyzeBtn.textContent = 'Analyzing…';
+
+      const headers = {};
+      if (_session?.access_token) {
+        headers['Authorization'] = `Bearer ${_session.access_token}`;
+      } else {
+        headers['X-Session-Id'] = _sid;
+      }
 
       const formData = new FormData();
       formData.append('file', selectedFile);
@@ -798,8 +1288,19 @@
       try {
         const response = await fetch(`${API_URL}/upload`, {
           method: 'POST',
+          headers,
           body: formData
         });
+
+        if (response.status === 401) {
+          openModal('signin');
+          return;
+        }
+
+        if (response.status === 403) {
+          showError('You have reached your 10-analysis limit. Thank you for using DocMind!');
+          return;
+        }
 
         const data = await response.json();
 
@@ -825,6 +1326,16 @@
 
         results.classList.add('show');
 
+        if (data.requires_auth) {
+          authPrompt.style.display = 'flex';
+        }
+
+        if (data.usage && _session) {
+          const { used, limit } = data.usage;
+          usageInfo.textContent = `${used} / ${limit} analyses used`;
+          usageInfo.className = used >= limit ? 'usage-info at-limit' : 'usage-info';
+        }
+
       } catch (err) {
         showError(err.message || 'Could not connect to the API. Make sure the server is running.');
       } finally {
@@ -836,7 +1347,6 @@
 
     document.getElementById('resetBtn').addEventListener('click', () => {
       clearFile();
-      results.classList.remove('show');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   </script>
