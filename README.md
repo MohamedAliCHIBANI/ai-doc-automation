@@ -13,9 +13,12 @@ DocMind is a full-stack application that extracts structured insights from **PDF
 
 - **Multi-format support** — PDF (via pdfplumber), CSV (via pandas), and plain text
 - **Structured AI analysis** — summary, key points, sentiment, document type, word count
+- **Authentication** — email/password and Google OAuth via Supabase; JWT verification on every request
+- **Usage tiers** — anonymous users get 1 free analysis (session-tracked); authenticated users get 10 lifetime analyses
 - **REST API** — clean FastAPI backend, fully documented via `/docs`
-- **Modern UI** — dark-mode single-page frontend with drag-and-drop upload
+- **Modern UI** — dark-mode single-page frontend with drag-and-drop upload, auth modal, and live usage counter
 - **Dockerized** — ready to run anywhere with a single command
+- **CI pipeline** — pytest suite with coverage runs on every push via GitHub Actions
 - **Cloud-deployed** — hosted on Render with zero configuration
 
 ---
@@ -27,8 +30,10 @@ DocMind is a full-stack application that extracts structured insights from **PDF
 | Backend | Python 3.10, FastAPI, Uvicorn |
 | AI | OpenAI API (`gpt-4o-mini`) |
 | Parsers | pdfplumber (PDF), pandas (CSV) |
+| Auth | Supabase (email/password + Google OAuth), python-jose |
 | Frontend | Vanilla HTML / CSS / JavaScript |
 | Container | Docker, Docker Compose |
+| CI | GitHub Actions, pytest, pytest-cov |
 | Hosting | Render (API), docanalyzer.dev (frontend) |
 
 ---
@@ -38,16 +43,27 @@ DocMind is a full-stack application that extracts structured insights from **PDF
 ```
 ai-doc-automation/
 ├── app/
-│   ├── main.py                  # FastAPI app, CORS, routes
+│   ├── main.py                  # FastAPI app, CORS, JWT verification, routes
 │   └── services/
 │       ├── file_loader.py       # PDF / CSV / TXT text extraction
-│       └── ai_summarizer.py     # OpenAI prompt + JSON response parsing
+│       ├── ai_summarizer.py     # OpenAI prompt + JSON response parsing
+│       ├── supabase_client.py   # Supabase admin client
+│       └── usage_tracker.py     # Per-user and per-session upload counts
+├── tests/
+│   ├── conftest.py
+│   ├── test_health.py
+│   ├── test_upload.py
+│   ├── test_usage.py
+│   ├── test_file_loader.py
+│   └── test_ai_summarizer.py
+├── .github/workflows/ci.yml    # GitHub Actions CI
 ├── index.html                   # Frontend (single-file SPA)
 ├── Dockerfile
 ├── docker-compose.yml
 ├── render.yaml
 ├── requirements.txt
-└── .env                         # Local secrets (never committed)
+├── requirements-dev.txt
+└── .env.example                 # Environment variable template
 ```
 
 ---
@@ -66,7 +82,14 @@ Upload a document and receive an AI analysis.
 
 **Request:** `multipart/form-data` with a `file` field (`.pdf`, `.csv`, or `.txt`)
 
-**Response:**
+**Headers (optional):**
+
+| Header | Description |
+|--------|-------------|
+| `Authorization: Bearer <token>` | Supabase JWT for authenticated users (10 uploads lifetime) |
+| `X-Session-Id: <uuid>` | Anonymous session ID (1 free upload per session) |
+
+**Response (authenticated):**
 ```json
 {
   "filename": "report.pdf",
@@ -76,16 +99,39 @@ Upload a document and receive an AI analysis.
     "Document Type": "Financial Report",
     "Sentiment": "neutral",
     "Word Count": 1240
-  }
+  },
+  "usage": { "used": 3, "limit": 10 }
+}
+```
+
+**Response (anonymous — first use):**
+```json
+{
+  "filename": "report.pdf",
+  "analysis": { ... },
+  "requires_auth": true,
+  "usage": { "used": 1, "limit": 1 }
 }
 ```
 
 **Error responses:**
 
-| Status | Cause |
-|--------|-------|
-| `400` | Unsupported file type |
-| `500` | Processing or OpenAI API failure |
+| Status | Detail | Cause |
+|--------|--------|-------|
+| `400` | — | Unsupported file type |
+| `401` | `auth_required` | No valid session or token provided |
+| `401` | `invalid_token` | Malformed or expired JWT |
+| `403` | `upload_limit_reached` | Authenticated user hit the 10-upload cap |
+| `500` | — | Processing or OpenAI API failure |
+
+### `GET /usage`
+Returns the current upload count for an authenticated user.
+
+**Headers:** `Authorization: Bearer <token>` (required)
+
+```json
+{ "used": 3, "limit": 10, "remaining": 7 }
+```
 
 Interactive API docs available at [`/docs`](https://ai-doc-automation.onrender.com/docs).
 
@@ -97,11 +143,12 @@ Interactive API docs available at [`/docs`](https://ai-doc-automation.onrender.c
 
 - Python 3.10+
 - An [OpenAI API key](https://platform.openai.com/api-keys)
+- A [Supabase](https://supabase.com) project with `upload_usage` and `anonymous_sessions` tables
 
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/your-username/ai-doc-automation.git
+git clone https://github.com/MohamedAliCHIBANI/ai-doc-automation.git
 cd ai-doc-automation
 
 python -m venv .venv
@@ -114,8 +161,7 @@ pip install -r requirements.txt
 
 ```bash
 cp .env.example .env
-# Edit .env and add your key:
-# OPENAI_API_KEY=sk-...
+# Fill in the values below
 ```
 
 ### 3. Run the API
@@ -139,12 +185,23 @@ The container exposes port `8000` and reads environment variables from `.env`.
 
 ---
 
+## Running Tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest tests/ -v --cov=app --cov-report=term-missing
+```
+
+Tests mock the OpenAI and Supabase clients so no live credentials are needed. The full suite also runs on every push to `main` via GitHub Actions.
+
+---
+
 ## Deployment
 
 The API is deployed on **Render** using the configuration in `render.yaml`.  
-Set the `OPENAI_API_KEY` environment variable in your Render service dashboard — never commit it to the repository.
+Set the environment variables in your Render service dashboard — never commit secrets to the repository.
 
-The frontend (`index.html`) can be hosted on any static hosting provider (Netlify, Vercel, GitHub Pages, etc.). Update the `API_URL` constant at the top of the script block to match your deployed API URL.
+The frontend (`index.html`) can be hosted on any static provider (Netlify, Vercel, GitHub Pages, etc.). Update the `API_URL` constant at the top of the script block to match your deployed API URL.
 
 ---
 
@@ -153,6 +210,9 @@ The frontend (`index.html`) can be hosted on any static hosting provider (Netlif
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `OPENAI_API_KEY` | Yes | Your OpenAI secret key |
+| `SUPABASE_URL` | Yes | Your Supabase project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service-role key (backend only) |
+| `SUPABASE_JWT_SECRET` | Yes | Supabase JWT secret for token verification |
 
 ---
 
