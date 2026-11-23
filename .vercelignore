@@ -1,0 +1,10 @@
+.venv/
+.env
+__pycache__/
+.pytest_cache/
+tests/
+.github/
+Dockerfile
+docker-compose.yml
+CNAME
+index.html

@@ -19,7 +19,7 @@ DocMind is a full-stack application that extracts structured insights from **PDF
 - **Modern UI** — dark-mode single-page frontend with drag-and-drop upload, auth modal, and live usage counter
 - **Dockerized** — ready to run anywhere with a single command
 - **CI pipeline** — pytest suite with coverage runs on every push via GitHub Actions
-- **Cloud-deployed** — hosted on Render with zero configuration
+- **Cloud-deployed** — API hosted on Vercel (serverless Python)
 
 ---
 
@@ -34,7 +34,7 @@ DocMind is a full-stack application that extracts structured insights from **PDF
 | Frontend | Vanilla HTML / CSS / JavaScript |
 | Container | Docker, Docker Compose |
 | CI | GitHub Actions, pytest, pytest-cov |
-| Hosting | Render (API), docanalyzer.dev (frontend) |
+| Hosting | Vercel (API), docanalyzer.dev (frontend) |
 
 ---
 
@@ -60,7 +60,8 @@ ai-doc-automation/
 ├── index.html                   # Frontend (single-file SPA)
 ├── Dockerfile
 ├── docker-compose.yml
-├── render.yaml
+├── vercel.json                  # Vercel deployment config
+├── .python-version              # Python version used by Vercel
 ├── requirements.txt
 ├── requirements-dev.txt
 └── .env.example                 # Environment variable template
@@ -198,10 +199,17 @@ Tests mock the OpenAI and Supabase clients so no live credentials are needed. Th
 
 ## Deployment
 
-The API is deployed on **Render** using the configuration in `render.yaml`.  
-Set the environment variables in your Render service dashboard — never commit secrets to the repository.
+The API is deployed on **Vercel**. `app/main.py` exposes the FastAPI `app` instance, which Vercel detects automatically. `vercel.json` sets the function timeout and which files are left out of the bundle.
 
-The frontend (`index.html`) can be hosted on any static provider (Netlify, Vercel, GitHub Pages, etc.). Update the `API_URL` constant at the top of the script block to match your deployed API URL.
+1. Import the GitHub repository in the Vercel dashboard (**Add New → Project**). Leave the framework preset on **FastAPI** and the root directory on `./`.
+2. Under **Settings → Environment Variables**, add `OPENAI_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_JWT_SECRET`. Never commit secrets to the repository.
+3. Deploy. Every push to `main` triggers a production deployment, and pull requests get preview URLs.
+
+You can also deploy with the CLI: `npm i -g vercel`, then `vercel` (preview) or `vercel --prod`.
+
+> **Limit:** Vercel functions accept request bodies up to **4.5 MB**, so the frontend rejects files larger than 4 MB.
+
+The frontend (`index.html`) is a static page served via GitHub Pages at `docanalyzer.dev`. Point the `API_URL` constant at the top of its script block at your Vercel deployment URL.
 
 ---
 

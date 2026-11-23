@@ -1130,6 +1130,7 @@
     const API_URL = 'https://ai-doc-automation.onrender.com';
     const SUPABASE_URL = 'https://cwhxertochvwtvvjszmj.supabase.co';
     const SUPABASE_ANON = 'sb_publishable_4pJ4oBqQp0OV_kHezXDsnA_tXpCeu4C';
+    const MAX_FILE_BYTES = 4 * 1024 * 1024;
 
     // ── Supabase init ────────────────────────────────────────────────────────
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
@@ -1379,6 +1380,12 @@
       if (!selectedFile) return;
 
       hideError();
+
+      // Vercel serverless functions reject request bodies larger than 4.5 MB
+      if (selectedFile.size > MAX_FILE_BYTES) {
+        showError('File too large — maximum size is 4 MB.');
+        return;
+      }
       results.classList.remove('show');
       authPrompt.style.display = 'none';
       loading.classList.add('show');
