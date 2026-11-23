@@ -5,7 +5,7 @@
 DocMind is a full-stack application that extracts structured insights from **PDF**, **CSV**, and **TXT** files using OpenAI's GPT-4o-mini model. It returns a clean analysis including a summary, key points, sentiment, document type, and word count — all in seconds.
 
 **Live demo:** [http://docanalyzer.dev/](http://docanalyzer.dev/)  
-**API:** [https://ai-doc-automation.onrender.com](https://ai-doc-automation.onrender.com)
+**API:** [https://ai-doc-automation-mu.vercel.app](https://ai-doc-automation-mu.vercel.app)
 
 ---
 
@@ -134,7 +134,7 @@ Returns the current upload count for an authenticated user.
 { "used": 3, "limit": 10, "remaining": 7 }
 ```
 
-Interactive API docs available at [`/docs`](https://ai-doc-automation.onrender.com/docs).
+Interactive API docs available at [`/docs`](https://ai-doc-automation-mu.vercel.app/docs).
 
 ---
 
